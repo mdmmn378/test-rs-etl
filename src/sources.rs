@@ -1,21 +1,21 @@
 use async_trait::async_trait;
 
+use serde_json;
+use tokio::sync::mpsc::Sender;
 use tokio::time::{sleep, Duration};
 
-use tokio::sync::mpsc::Sender;
-
 #[async_trait]
-trait SourceTrait {
+pub trait SourceTrait {
     async fn run(&self);
 }
 
-struct Source {
+pub struct Source {
     name: String,
-    tx: Sender<String>,
+    tx: Sender<serde_json::Value>,
 }
 
 impl Source {
-    fn new(name: String, tx: Sender<String>) -> Source {
+    pub fn new(name: String, tx: Sender<serde_json::Value>) -> Source {
         Source { name, tx }
     }
 }
@@ -25,9 +25,16 @@ impl SourceTrait for Source {
         println!("{}: run", self.name);
         let mut counter = 0;
         loop {
-            let msg = format!("{}: {}", self.name, counter);
-            println!("{}", msg);
-            self.tx.send(msg).await.unwrap();
+            let json = serde_json::json!({
+                "name": self.name,
+                "counter": counter,
+            });
+            println!("Sending: {}", json);
+            let err = self.tx.send(json).await;
+            match err {
+                Ok(_) => (),
+                Err(e) => println!("Error: {}", e),
+            };
             counter += 1;
             sleep(Duration::from_secs(1)).await;
         }
@@ -35,14 +42,22 @@ impl SourceTrait for Source {
 }
 #[tokio::test]
 async fn test_source() {
+    use crate::sinks::Sink;
+    use crate::sinks::SinkTrait;
     use tokio::sync::mpsc::channel;
     use tokio::sync::mpsc::Receiver;
 
-    let (tx, mut rx): (Sender<String>, Receiver<String>) = channel(100);
+    let (tx, rx): (Sender<serde_json::Value>, Receiver<serde_json::Value>) = channel(100);
     let source = Source::new("source".to_string(), tx);
-    source.run().await;
-    loop {
-        let msg = rx.recv().await.unwrap();
-        println!("main: {}", msg);
-    }
+    let mut sink = Sink::new("sink".to_string(), rx);
+
+    // tokio::spawn(async move {
+    //     source.run().await;
+    // });
+
+    // tokio::spawn(async move {
+    //     sink.run().await;
+    // });
+    // println!("test_source: done");
+    tokio::join!(source.run(), sink.run());
 }

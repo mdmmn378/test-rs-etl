@@ -1,18 +1,18 @@
 use async_trait::async_trait;
+use serde_json;
 use tokio::sync::mpsc::Receiver;
-
 #[async_trait]
-trait SinkTrait {
+pub trait SinkTrait {
     async fn run(&mut self);
 }
 
-struct Sink {
+pub struct Sink {
     name: String,
-    rx: Receiver<String>,
+    rx: Receiver<serde_json::Value>,
 }
 
 impl Sink {
-    fn new(name: String, rx: Receiver<String>) -> Sink {
+    pub fn new(name: String, rx: Receiver<serde_json::Value>) -> Sink {
         Sink { name, rx }
     }
 }
@@ -23,7 +23,7 @@ impl SinkTrait for Sink {
         println!("{}: run", self.name);
         loop {
             let msg = (self.rx).recv().await.unwrap();
-            println!("Sink {}", msg);
+            println!("Received {}", msg);
         }
     }
 }
@@ -32,14 +32,7 @@ impl SinkTrait for Sink {
 async fn test_sink() {
     use tokio::sync::mpsc::channel;
     use tokio::sync::mpsc::Sender;
-    use tokio::time::{sleep, Duration};
-    let (tx, rx): (Sender<String>, Receiver<String>) = channel(100);
+    let (_, rx): (Sender<serde_json::Value>, Receiver<serde_json::Value>) = channel(100);
     let mut sink = Sink::new("sink".to_string(), rx);
     sink.run().await;
-    loop {
-        let msg = format!("main: {}", 1);
-        println!("{}", msg);
-        tx.send(msg).await.unwrap();
-        sleep(Duration::from_secs(1)).await;
-    }
 }
