@@ -1,9 +1,8 @@
 use async_trait::async_trait;
-use serde_json::{Result, Value};
-use std::mem;
+
 use tokio::time::{sleep, Duration};
 
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::mpsc::Sender;
 
 #[async_trait]
 trait SourceTrait {
@@ -36,6 +35,9 @@ impl SourceTrait for Source {
 }
 #[tokio::test]
 async fn test_source() {
+    use tokio::sync::mpsc::channel;
+    use tokio::sync::mpsc::Receiver;
+
     let (tx, mut rx): (Sender<String>, Receiver<String>) = channel(100);
     let source = Source::new("source".to_string(), tx);
     source.run().await;

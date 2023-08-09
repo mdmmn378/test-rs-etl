@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use tokio::sync::mpsc::{channel, Receiver, Sender};
-use tokio::time::{sleep, Duration};
+use tokio::sync::mpsc::Receiver;
+
 #[async_trait]
 trait SinkTrait {
     async fn run(&mut self);
@@ -30,6 +30,9 @@ impl SinkTrait for Sink {
 
 #[tokio::test]
 async fn test_sink() {
+    use tokio::sync::mpsc::channel;
+    use tokio::sync::mpsc::Sender;
+    use tokio::time::{sleep, Duration};
     let (tx, rx): (Sender<String>, Receiver<String>) = channel(100);
     let mut sink = Sink::new("sink".to_string(), rx);
     sink.run().await;
