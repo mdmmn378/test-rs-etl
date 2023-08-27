@@ -64,6 +64,7 @@ impl SourceTrait for HttpSource {
     async fn run(&self) {
         println!("{}: run", self.name);
         loop {
+            println!("{}: send_request", self.name);
             let res = self.send_request().await;
             let err = self.tx.send(res).await;
             match err {

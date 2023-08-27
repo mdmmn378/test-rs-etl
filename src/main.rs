@@ -1,4 +1,5 @@
 mod bridges;
+mod mongo_client;
 mod sinks;
 mod sources;
 use serde_json;
@@ -23,9 +24,26 @@ async fn dummy_to_http() {
     bridge(&mut source, &mut sink).await;
 }
 
+async fn basic() {
+    let (tx, rx) = get_channel();
+    let mut mongo_source = sources::HttpSource::new(
+        "mongo_source".to_string(),
+        tx,
+        "http://localhost:8000/rust/event".to_string(),
+    );
+    let mut sink = sinks::MongoSink::new(
+        "mongo_sink".to_string(),
+        rx,
+        "mongodb://localhost:27017".to_string(),
+    );
+    bridge(&mut mongo_source, &mut sink).await;
+}
+
 #[tokio::main]
 async fn main() {
     let p1 = dummy_to_http();
     let p2 = dummy_to_http();
-    tokio::join!(p1, p2);
+    let p3 = basic();
+    let p4 = basic();
+    tokio::join!(p1, p2, p3, p4);
 }

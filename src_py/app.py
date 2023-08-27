@@ -27,3 +27,8 @@ def generated_pseudo_event(source_name: str):
 @app.get("/{source}/events")
 async def events(source: str):
     return [generated_pseudo_event(source) for _ in range(10)]
+
+
+@app.get("/{source}/event")
+async def event(source: str):
+    return generated_pseudo_event(source)
